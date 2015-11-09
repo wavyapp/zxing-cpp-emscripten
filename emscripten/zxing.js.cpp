@@ -37,6 +37,11 @@
 
 #include <zxing/LuminanceSource.h>
 
+#include <zxing/Binarizer.h>
+#include <zxing/common/BitArray.h>
+#include <zxing/common/BitMatrix.h>
+#include <zxing/common/Array.h>
+
 #include <emscripten.h>
 
 using namespace std;
@@ -82,6 +87,97 @@ zxing::ArrayRef<char> ImageReaderSource::getMatrix() const {
 }
 
 
+namespace zxing {
+  
+class PassthroughBinarizer : public Binarizer {
+private:
+  ArrayRef<char> luminances;
+public:
+  PassthroughBinarizer(Ref<LuminanceSource> source);
+  virtual ~PassthroughBinarizer();
+    
+  virtual Ref<BitArray> getBlackRow(int y, Ref<BitArray> row);
+  virtual Ref<BitMatrix> getBlackMatrix();
+  Ref<Binarizer> createBinarizer(Ref<LuminanceSource> source);
+private:
+  void initArrays(int luminanceSize);
+};
+
+}
+
+
+using zxing::GlobalHistogramBinarizer;
+using zxing::Binarizer;
+using zxing::ArrayRef;
+using zxing::Ref;
+using zxing::BitArray;
+using zxing::BitMatrix;
+
+// VC++
+using zxing::LuminanceSource;
+
+namespace {
+  const int LUMINANCE_BITS = 5;
+  const int LUMINANCE_SHIFT = 8 - LUMINANCE_BITS;
+  const int LUMINANCE_BUCKETS = 1 << LUMINANCE_BITS;
+  const ArrayRef<char> EMPTY (0);
+}
+
+PassthroughBinarizer::PassthroughBinarizer(Ref<LuminanceSource> source) 
+  : Binarizer(source), luminances(EMPTY) {}
+
+PassthroughBinarizer::~PassthroughBinarizer() {}
+
+void PassthroughBinarizer::initArrays(int luminanceSize) {
+  if (luminances->size() < luminanceSize) {
+    luminances = ArrayRef<char>(luminanceSize);
+  }
+}
+
+Ref<BitArray> PassthroughBinarizer::getBlackRow(int y, Ref<BitArray> row) {
+  // std::cerr << "gbr " << y << std::endl;
+  LuminanceSource& source = *getLuminanceSource();
+  int width = source.getWidth();
+  if (row == NULL || static_cast<int>(row->getSize()) < width) {
+    row = new BitArray(width);
+  } else {
+    row->clear();
+  }
+
+  initArrays(width);
+  ArrayRef<char> localLuminances = source.getRow(y, luminances);
+  for (int x = 0; x < width; x++) {
+    if (luminances[x]) {
+      row->set(x);
+    }
+  }
+  return row;
+}
+ 
+Ref<BitMatrix> PassthroughBinarizer::getBlackMatrix() {
+  LuminanceSource& source = *getLuminanceSource();
+  int width = source.getWidth();
+  int height = source.getHeight();
+  Ref<BitMatrix> matrix(new BitMatrix(width, height));
+
+  ArrayRef<char> localLuminances = source.getMatrix();
+  for (int y = 0; y < height; y++) {
+    int offset = y * width;
+    for (int x = 0; x < width; x++) {
+      if (localLuminances[offset + x]) {
+        matrix->set(x, y);
+      }
+    }
+  }
+  
+  return matrix;
+}
+
+Ref<Binarizer> PassthroughBinarizer::createBinarizer(Ref<LuminanceSource> source) {
+  return Ref<Binarizer> (new PassthroughBinarizer(source));
+}
+
+
 vector<Ref<Result> > decode_qr_(Ref<BinaryBitmap> image, DecodeHints hints) {
   Ref<Reader> reader(new QRCodeReader);
   return vector<Ref<Result> >(1, reader->decode(image, hints));
@@ -103,6 +199,7 @@ enum DECODE_MODE {
   ANY,
   MULTI
 };
+
 
 extern "C" {
 
@@ -160,7 +257,7 @@ extern "C" {
         std::string result = results[i]->getText()->getText();
         EM_ASM_(
           {
-            Module.decode_callback($0, $1, $2, $3);
+            ZXing.decode_callback($0, $1, $2, $3);
           },
           result.c_str(), result.size(), i, results.size()
         );
