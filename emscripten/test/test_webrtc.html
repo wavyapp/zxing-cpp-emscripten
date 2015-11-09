@@ -1,0 +1,130 @@
+<html>
+<body>
+
+<script async src="../../build/zxing.js"></script>
+<div id="scanned"></div>
+<script>
+
+var image;
+var last = Date.now();
+var DEBUG = 0;
+
+var tick = function() {
+	if (window.ZXing) {
+		ZXing = ZXing();
+		testZXing();
+	} else {
+		setTimeout(tick, 10);
+	}
+};
+tick();
+
+function log() {
+	if (!DEBUG) return;
+	var now = Date.now();
+	var args = Array.prototype.slice.call(arguments);
+	args.unshift('+' + (now - last) + 'ms');
+	console.log.apply(console, args);
+	last = now;
+}
+
+
+function testZXing() {
+
+	// start
+	var video = document.createElement('video');
+	video.autoplay = true;
+
+	navigator.getUserMedia  = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+
+	var tw = 640 // 320 // 640 // 1280;
+	var th = 480 // 240 // 480 // 720
+
+	var hdConstraints = {
+		audio: false,
+		video: {
+			mandatory: {
+				maxWidth: tw,
+				maxHeight: th
+			}
+		}
+	};
+
+	if (navigator.getUserMedia) {
+		navigator.getUserMedia(hdConstraints, success, errorCallback);
+	} else {
+		errorCallback('');
+	}
+
+	function errorCallback(e) {
+		console.log("Can't access user media", e);
+	}
+
+	function success(stream) {
+		console.log('success', stream);
+		video.src = window.URL.createObjectURL(stream);
+		video.onclick = function() { video.play(); };
+		video.play();
+
+		function getFrame() {
+			requestAnimationFrame(getFrame);
+
+			if (!video.videoWidth) return;
+
+			if (!image) {
+				width = video.videoWidth, height = video.videoHeight;
+				log('video', width, height, video);
+
+				var canvas = document.createElement('canvas');
+				canvas.width = width;
+				canvas.height = height;
+				canvas.style.transform = 'scale(-1, 1)';
+
+				ctx = canvas.getContext('2d');
+				document.body.appendChild(canvas);
+
+				log('start');
+
+				ZXing.decode_callback = function(ptr, len, resultIndex, resultCount) {
+					var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
+					window.resultString = String.fromCharCode.apply(null, result);
+				};
+
+				image = ZXing._resize(width, height);
+				log('_xsetup', image, 'pointer');
+				return;
+			}
+
+			log('interval')
+			console.time('a')
+			ctx.drawImage(video, 0, 0, width, height);
+			var imageData = ctx.getImageData(0,0, width, height);
+			data = imageData.data;
+
+			for (var i=0, j=0; i<data.length; i+=4, j++) {
+				// ZXing.HEAPU8[image + j] = data[i];
+				ZXing.HEAPU8[image + j] = 0.2989 * data[i + 0] + 0.5870 * data[i + 1] + 0.1140 * data[i + 2] ;
+			}
+
+			var err = ZXing._decode_qr();
+			// err = ZXing._decode_any();
+			// err = ZXing._decode_multi();
+
+			// console.log("error code", err);
+			// console.log("result", window.resultString);
+
+			var r = err ? ("error: "+err) : window.resultString;
+			scanned.innerHTML = r
+
+
+			console.timeEnd('a')
+		}
+
+		getFrame();
+
+	};
+};
+</script>
+
+</body>
+</html>
