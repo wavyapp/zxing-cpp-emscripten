@@ -1,16 +1,21 @@
 <html>
 <body>
-<script type="text/javascript">
-	var Module = {
-		onRuntimeInitialized: function() {
-			testZXing();
-		}
-	};
-</script>
+
 <script async src="../../build/zxing.js"></script>
+
 <script>
 
-var testZXing = function() {
+var tick = function() {
+	if (window.ZXing) {
+		ZXing = ZXing();
+		testZXing();
+	} else {
+		setTimeout(tick, 10);
+	}
+};
+tick();
+
+function testZXing() {
 	var img = new Image;
 	img.src = 'Qr-10.png';
 	img.onload = function() {
@@ -29,51 +34,51 @@ var testZXing = function() {
 		var idd = imageData.data;
 		document.body.appendChild(canvas);
 
-		Module.decode_callback = function(ptr, len, resultIndex, resultCount) {
-			var result = new Uint8Array(Module.HEAPU8.buffer, ptr, len);
+		ZXing.decode_callback = function(ptr, len, resultIndex, resultCount) {
+			var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
 			window.resultString = String.fromCharCode.apply(null, result);
 		};
 
-		var image = Module._resize(width, height);
+		var image = ZXing._resize(width, height);
 
 		for (var i=0, j=0; i<idd.length; i+=4, j++) {
-			Module.HEAPU8[image + j] = idd[i];
+			ZXing.HEAPU8[image + j] = idd[i];
 		}
 
-		var err = Module._decode_qr();
+		var err = ZXing._decode_qr();
 
 		console.log("error code", err);
 		console.log("result", window.resultString);
 
+		document.body.appendChild(document.createTextNode(err ? ("error: "+err) : window.resultString));
+
 		for (var k=0; k<50; k++) {
 			for (var i=0, j=0; i<idd.length; i+=4, j++) {
-				Module.HEAPU8[image + j] = idd[i];
+				ZXing.HEAPU8[image + j] = idd[i];
 			}
-			err = Module._decode_qr();
+			err = ZXing._decode_qr();
 		}
 
 		console.time("decode QR");
 		for (var i=0, j=0; i<idd.length; i+=4, j++) {
-			Module.HEAPU8[image + j] = idd[i];
+			ZXing.HEAPU8[image + j] = idd[i];
 		}
-		err = Module._decode_qr();
+		err = ZXing._decode_qr();
 		console.timeEnd("decode QR");
 
 		console.time("decode any");
 		for (var i=0, j=0; i<idd.length; i+=4, j++) {
-			Module.HEAPU8[image + j] = idd[i];
+			ZXing.HEAPU8[image + j] = idd[i];
 		}
-		err = Module._decode_any();
+		err = ZXing._decode_any();
 		console.timeEnd("decode any");
 
 		console.time("decode multi");
 		for (var i=0, j=0; i<idd.length; i+=4, j++) {
-			Module.HEAPU8[image + j] = idd[i];
+			ZXing.HEAPU8[image + j] = idd[i];
 		}
-		err = Module._decode_multi();
+		err = ZXing._decode_multi();
 		console.timeEnd("decode multi");
-
-		document.body.appendChild(document.createTextNode(err ? ("error: "+err) : window.resultString));
 
 	};
 };

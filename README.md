@@ -6,7 +6,7 @@ To build:
 
   1. `cd build`
   2. `emconfigure cmake ..`
-  3. `emmake -j4`
+  3. `emmake make -j4`
   4. `cd ..`
   5. `serve -p 3000`
   6. `open http://localhost:3000/emscripten/test/test.html`
@@ -15,38 +15,45 @@ To use:
 
 ``` javascript
     <script type="text/javascript">
-      var Module = {
+      var tick = function() {
+        if (window.ZXing) {
+          ZXing = ZXing();
+          doSomeDetecting();
+        } else {
+          setTimeout(tick, 10);
+        }
+      };
+      setTimeout(tick, 10);
 
-        // This is called when the ZXing module is ready to use.
-        onRuntimeInitialized: function() {
+      var doSomeDetecting = function() {
 
           var resultString;
 
           // JS callback to receive the result pointer from C++
-          Module.decode_callback = function(ptr, len, resultIndex, resultCount) {
+          ZXing.decode_callback = function(ptr, len, resultIndex, resultCount) {
             // Convert the result C string into a JS string.
-            var result = new Uint8Array(Module.HEAPU8.buffer, ptr, len);
+            var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
             resultString = String.fromCharCode.apply(null, result);
           };
 
           // Get a write pointer for the QR image data array.
           // The write pointer is a pointer to a width*height Uint8Array of grayscale values.
-          var imageWritePtr = Module._resize(width, height);
+          var imageWritePtr = ZXing._resize(width, height);
 
           // Copy your image data to the QR image data array.
           for (var i=0, j=0; i<myGrayscaleImageData.length; i++, j++) {
-            Module.HEAPU8[imageWritePtr + j] = myGrayscaleImageData[i];
+            ZXing.HEAPU8[imageWritePtr + j] = myGrayscaleImageData[i];
           }
 
           // Detect QR codes in the image.
-          var err = Module._decode_qr();
+          var err = ZXing._decode_qr();
 
           // Detect a barcode in the image.
-          // err = Module._decode_any();
+          // err = ZXing._decode_any();
 
           // Detect multiple barcodes in the image.
           // If there are multiple barcodes detected, decode_callback is called with each.
-          // err = Module._decode_multi();
+          // err = ZXing._decode_multi();
 
           console.log("error code", err);
           console.log("result", resultString);
@@ -54,7 +61,7 @@ To use:
         }
       };
     </script>
-    <script async src="../../build/zxing.js"></script>
+    <script async src="zxing.js"></script>
 ```
 
 To hack: 
