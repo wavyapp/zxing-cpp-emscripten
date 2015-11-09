@@ -35,6 +35,8 @@ if(MSVC)
     add_definitions(/Za)
 endif()
 
+set(CMAKE_CXX_FLAGS "-std=c++11 --bind -O2 -s DISABLE_EXCEPTION_CATCHING=0 --memory-init-file 0 -s EXPORTED_FUNCTIONS=\"['_qr_resize', '_qr_decode']\" -Wno-warn-absolute-paths")
+
 # Add libzxing library.
 file(GLOB_RECURSE LIBZXING_FILES
     "./core/src/*.cpp"
@@ -42,37 +44,17 @@ file(GLOB_RECURSE LIBZXING_FILES
     "./core/src/*.cc"
     "./core/src/*.hh"
 )
-if(WIN32)
-    file(GLOB LIBZXING_WIN32_FILES
-        "./core/lib/win32/*.c"
-        "./core/lib/win32/*.h"
-    )
-    set(LIBZXING_FILES ${LIBZXING_FILES} ${LIBZXING_WIN32_FILES})
-    include_directories(SYSTEM "./core/lib/win32/")
-endif()
 include_directories("./core/src/")
-add_library(libzxing ${LIBZXING_FILES})
+add_library(libzxing SHARED ${LIBZXING_FILES})
 set_target_properties(libzxing PROPERTIES PREFIX "")
-find_package(Iconv)
-if(ICONV_FOUND)
-    include_directories(${ICONV_INCLUDE_DIR})
-    target_link_libraries(libzxing ${ICONV_LIBRARIES})
-else()
-    add_definitions(-DNO_ICONV=1)
-endif()
+add_definitions(-DNO_ICONV=1)
 
 # Add cli executable.
 file(GLOB_RECURSE ZXING_FILES
-    "./cli/src/*.cpp"
-    "./cli/src/*.h"
+    "./emscripten/zxing.js.cpp"
 )
 add_executable(zxing ${ZXING_FILES})
 target_link_libraries(zxing libzxing)
-install(TARGETS zxing libzxing
-	LIBRARY DESTINATION lib
-	RUNTIME DESTINATION bin
-	ARCHIVE DESTINATION lib)
-install(DIRECTORY core/src/zxing/ DESTINATION include/zxing FILES_MATCHING PATTERN "*.h")
 
 # Add testrunner executable.
 find_package(CPPUNIT)

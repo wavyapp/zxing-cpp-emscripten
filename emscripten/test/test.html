@@ -1,0 +1,71 @@
+<html>
+<body>
+<script type="text/javascript">
+	var Module = {
+		onRuntimeInitialized: function() {
+			testZXing();
+		}
+	};
+</script>
+<script async src="../../build/zxing.js"></script>
+<script>
+
+var testZXing = function() {
+	var img = new Image;
+	img.src = 'Qr-10.png';
+	img.onload = function() {
+
+		var width = Math.floor(this.width),
+			height = Math.floor(this.height);
+
+		var canvas = document.createElement('canvas');
+		canvas.style.display = 'block';
+		canvas.width = width;
+		canvas.height = height;
+		var ctx = canvas.getContext('2d');
+		// ctx.rotate(Math.random()*0.1-0.05);
+		ctx.drawImage(this, 0, 0, width, height);
+		var imageData = ctx.getImageData(0, 0, width, height);
+		var idd = imageData.data;
+		document.body.appendChild(canvas);
+
+		// var qr_resize = Module.cwrap('qr_resize', 'number', ['number', 'number']);
+		// var qr_read = Module.cwrap('qr_decode', 'string', []);
+
+		Module.qr_decode_callback = function(ptr) {
+			for (var i=ptr; Module.HEAPU8[i]; i++) {}
+			var result = new Uint8Array(Module.HEAPU8.buffer, ptr, i-ptr);
+			window.resultString = String.fromCharCode.apply(null, result);
+		};
+
+		var image = Module._qr_resize(width, height);
+
+		for (var i=0, j=0; i<idd.length; i+=4, j++) {
+			Module.HEAPU8[image + j] = idd[i];
+		}
+
+		var err = Module._qr_decode();
+
+		console.log("error code", err);
+		console.log("result", window.resultString);
+
+		for (var k=0; k<50; k++) {
+			for (var i=0, j=0; i<idd.length; i+=4, j++) {
+				Module.HEAPU8[image + j] = idd[i];
+			}
+			err = Module._qr_decode();
+		}
+
+		console.time("decode");
+		for (var i=0, j=0; i<idd.length; i+=4, j++) {
+			Module.HEAPU8[image + j] = idd[i];
+		}
+		err = Module._qr_decode();
+		console.timeEnd("decode");
+		document.body.appendChild(document.createTextNode(err ? ("error: "+err) : window.resultString));
+	};
+};
+</script>
+
+</body>
+</html>
