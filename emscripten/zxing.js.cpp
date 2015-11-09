@@ -42,6 +42,7 @@
 using namespace std;
 using namespace zxing;
 using namespace zxing::qrcode;
+using namespace zxing::multi;
 
 
 class ImageReaderSource : public zxing::LuminanceSource {
@@ -81,10 +82,27 @@ zxing::ArrayRef<char> ImageReaderSource::getMatrix() const {
 }
 
 
-vector<Ref<Result> > decode(Ref<BinaryBitmap> image, DecodeHints hints) {
+vector<Ref<Result> > decode_qr_(Ref<BinaryBitmap> image, DecodeHints hints) {
   Ref<Reader> reader(new QRCodeReader);
   return vector<Ref<Result> >(1, reader->decode(image, hints));
 }
+
+vector<Ref<Result> > decode_any_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> reader(new MultiFormatReader);
+  return vector<Ref<Result> >(1, reader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_multi_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  MultiFormatReader delegate;
+  GenericMultipleBarcodeReader reader(delegate);
+  return reader.decodeMultiple(image, hints);
+}
+
+enum DECODE_MODE {
+  QR,
+  ANY,
+  MULTI
+};
 
 extern "C" {
 
@@ -92,14 +110,15 @@ extern "C" {
   static zxing::ArrayRef<char> image = NULL;
   static Ref<LuminanceSource> source;
 
-  const char* qr_resize(int width, int height) {
+  const char* resize(int width, int height) {
     image = zxing::ArrayRef<char>(width*height);
     imagePtr = &image[0];
     source = Ref<LuminanceSource>(new ImageReaderSource(image, width, height));
     return imagePtr;
   }
 
-  int qr_decode() {
+
+  int __decode(DECODE_MODE mode) {
     vector<Ref<Result> > results;
     int res = -1;
 
@@ -109,10 +128,16 @@ extern "C" {
 
       DecodeHints hints(DecodeHints::DEFAULT_HINT);
 
-      binarizer = new GlobalHistogramBinarizer(source);
+      binarizer = new HybridBinarizer(source);
       Ref<BinaryBitmap> binary(new BinaryBitmap(binarizer));
 
-      results = decode(binary, hints);
+      if (mode == DECODE_MODE::QR) {
+        results = decode_qr_(binary, hints);
+      } else if (mode == DECODE_MODE::ANY) {
+        results = decode_any_(binary, hints);
+      } else {
+        results = decode_multi_(binary, hints);
+      }
 
       res = 0;
 
@@ -131,16 +156,31 @@ extern "C" {
     }
 
     if (res == 0) {
-      std::string result = results[0]->getText()->getText();
-      EM_ASM_(
-        {
-          Module.qr_decode_callback($0);
-        },
-        result.c_str()
-      );
+      for (int i=0; i<results.size(); i++) {
+        std::string result = results[i]->getText()->getText();
+        EM_ASM_(
+          {
+            Module.decode_callback($0, $1, $2, $3);
+          },
+          result.c_str(), result.size(), i, results.size()
+        );
+      }
     }
 
     return res;
+  }
+
+
+  int decode_qr() {
+    return __decode(DECODE_MODE::QR);
+  }
+
+  int decode_any() {
+    return __decode(DECODE_MODE::ANY);
+  }
+
+  int decode_multi() {
+    return __decode(DECODE_MODE::MULTI);
   }
 
 }

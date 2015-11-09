@@ -35,7 +35,14 @@ if(MSVC)
     add_definitions(/Za)
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 --bind -O2 -s DISABLE_EXCEPTION_CATCHING=0 --memory-init-file 0 -s EXPORTED_FUNCTIONS=\"['_qr_resize', '_qr_decode']\" -Wno-warn-absolute-paths")
+if (EMSCRIPTEN)
+    set(CMAKE_AR "emcc")
+    set(CMAKE_STATIC_LIBRARY_SUFFIX ".bc")
+    set(CMAKE_C_CREATE_STATIC_LIBRARY "<CMAKE_AR> -o <TARGET> <LINK_FLAGS> <OBJECTS>")
+    set(CMAKE_CXX_CREATE_STATIC_LIBRARY "<CMAKE_AR> -o <TARGET> <LINK_FLAGS> <OBJECTS>")
+endif()
+
+set(CMAKE_CXX_FLAGS "-std=c++11 --bind -O2 -s DISABLE_EXCEPTION_CATCHING=0 --memory-init-file 0 -s EXPORTED_FUNCTIONS=\"['_resize','_decode_qr','_decode_any','_decode_multi']\" -Wno-warn-absolute-paths")
 
 # Add libzxing library.
 file(GLOB_RECURSE LIBZXING_FILES
@@ -45,7 +52,7 @@ file(GLOB_RECURSE LIBZXING_FILES
     "./core/src/*.hh"
 )
 include_directories("./core/src/")
-add_library(libzxing SHARED ${LIBZXING_FILES})
+add_library(libzxing STATIC ${LIBZXING_FILES})
 set_target_properties(libzxing PROPERTIES PREFIX "")
 add_definitions(-DNO_ICONV=1)
 

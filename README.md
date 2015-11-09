@@ -1,3 +1,66 @@
+# ZXing Emscripten build
+
+Based on the [ZXing C++ Port](https://github.com/glassechidna/zxing-cpp) with CMakeLists.txt from [ZXing Emscripten](https://github.com/fta2012/zxing-emscripten)
+
+To build:
+
+  1. `cd build`
+  2. `emconfigure cmake ..`
+  3. `emmake -j4`
+  4. `cd ..`
+  5. `serve -p 3000`
+  6. `open http://localhost:3000/emscripten/test/test.html`
+
+To use:
+
+``` javascript
+    <script type="text/javascript">
+      var Module = {
+
+        // This is called when the ZXing module is ready to use.
+        onRuntimeInitialized: function() {
+
+          var resultString;
+
+          // JS callback to receive the result pointer from C++
+          Module.decode_callback = function(ptr, len, resultIndex, resultCount) {
+            // Convert the result C string into a JS string.
+            var result = new Uint8Array(Module.HEAPU8.buffer, ptr, len);
+            resultString = String.fromCharCode.apply(null, result);
+          };
+
+          // Get a write pointer for the QR image data array.
+          // The write pointer is a pointer to a width*height Uint8Array of grayscale values.
+          var imageWritePtr = Module._resize(width, height);
+
+          // Copy your image data to the QR image data array.
+          for (var i=0, j=0; i<myGrayscaleImageData.length; i++, j++) {
+            Module.HEAPU8[imageWritePtr + j] = myGrayscaleImageData[i];
+          }
+
+          // Detect QR codes in the image.
+          var err = Module._decode_qr();
+
+          // Detect a barcode in the image.
+          // err = Module._decode_any();
+
+          // Detect multiple barcodes in the image.
+          // If there are multiple barcodes detected, decode_callback is called with each.
+          // err = Module._decode_multi();
+
+          console.log("error code", err);
+          console.log("result", resultString);
+
+        }
+      };
+    </script>
+    <script async src="../../build/zxing.js"></script>
+```
+
+To hack: 
+
+  See `emscripten/zxing.js.cpp`. 
+
 # ZXing C++ Port
 
 [ZXing](https://github.com/zxing/zxing) is/was a Java library.

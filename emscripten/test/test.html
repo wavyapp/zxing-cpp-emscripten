@@ -29,22 +29,18 @@ var testZXing = function() {
 		var idd = imageData.data;
 		document.body.appendChild(canvas);
 
-		// var qr_resize = Module.cwrap('qr_resize', 'number', ['number', 'number']);
-		// var qr_read = Module.cwrap('qr_decode', 'string', []);
-
-		Module.qr_decode_callback = function(ptr) {
-			for (var i=ptr; Module.HEAPU8[i]; i++) {}
-			var result = new Uint8Array(Module.HEAPU8.buffer, ptr, i-ptr);
+		Module.decode_callback = function(ptr, len, resultIndex, resultCount) {
+			var result = new Uint8Array(Module.HEAPU8.buffer, ptr, len);
 			window.resultString = String.fromCharCode.apply(null, result);
 		};
 
-		var image = Module._qr_resize(width, height);
+		var image = Module._resize(width, height);
 
 		for (var i=0, j=0; i<idd.length; i+=4, j++) {
 			Module.HEAPU8[image + j] = idd[i];
 		}
 
-		var err = Module._qr_decode();
+		var err = Module._decode_qr();
 
 		console.log("error code", err);
 		console.log("result", window.resultString);
@@ -53,16 +49,32 @@ var testZXing = function() {
 			for (var i=0, j=0; i<idd.length; i+=4, j++) {
 				Module.HEAPU8[image + j] = idd[i];
 			}
-			err = Module._qr_decode();
+			err = Module._decode_qr();
 		}
 
-		console.time("decode");
+		console.time("decode QR");
 		for (var i=0, j=0; i<idd.length; i+=4, j++) {
 			Module.HEAPU8[image + j] = idd[i];
 		}
-		err = Module._qr_decode();
-		console.timeEnd("decode");
+		err = Module._decode_qr();
+		console.timeEnd("decode QR");
+
+		console.time("decode any");
+		for (var i=0, j=0; i<idd.length; i+=4, j++) {
+			Module.HEAPU8[image + j] = idd[i];
+		}
+		err = Module._decode_any();
+		console.timeEnd("decode any");
+
+		console.time("decode multi");
+		for (var i=0, j=0; i<idd.length; i+=4, j++) {
+			Module.HEAPU8[image + j] = idd[i];
+		}
+		err = Module._decode_multi();
+		console.timeEnd("decode multi");
+
 		document.body.appendChild(document.createTextNode(err ? ("error: "+err) : window.resultString));
+
 	};
 };
 </script>
