@@ -87,8 +87,6 @@ zxing::ArrayRef<char> ImageReaderSource::getMatrix() const {
 }
 
 
-namespace zxing {
-  
 class PassthroughBinarizer : public Binarizer {
 private:
   ArrayRef<char> luminances;
@@ -103,7 +101,7 @@ private:
   void initArrays(int luminanceSize);
 };
 
-}
+
 
 
 using zxing::GlobalHistogramBinarizer;
@@ -117,9 +115,6 @@ using zxing::BitMatrix;
 using zxing::LuminanceSource;
 
 namespace {
-  const int LUMINANCE_BITS = 5;
-  const int LUMINANCE_SHIFT = 8 - LUMINANCE_BITS;
-  const int LUMINANCE_BUCKETS = 1 << LUMINANCE_BITS;
   const ArrayRef<char> EMPTY (0);
 }
 
@@ -183,6 +178,11 @@ vector<Ref<Result> > decode_qr_(Ref<BinaryBitmap> image, DecodeHints hints) {
   return vector<Ref<Result> >(1, reader->decode(image, hints));
 }
 
+vector<Ref<Result> > decode_qr_multi_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> reader(new QRCodeMultiReader);
+  return vector<Ref<Result> >(1, reader->decode(image, hints));
+}
+
 vector<Ref<Result> > decode_any_(Ref<BinaryBitmap> image, DecodeHints hints) {
   Ref<Reader> reader(new MultiFormatReader);
   return vector<Ref<Result> >(1, reader->decode(image, hints));
@@ -196,6 +196,7 @@ vector<Ref<Result> > decode_multi_(Ref<BinaryBitmap> image, DecodeHints hints) {
 
 enum DECODE_MODE {
   QR,
+  QR_MULTI,
   ANY,
   MULTI
 };
@@ -230,6 +231,8 @@ extern "C" {
 
       if (mode == DECODE_MODE::QR) {
         results = decode_qr_(binary, hints);
+      } else if (mode == DECODE_MODE::QR_MULTI) {
+        results = decode_qr_multi_(binary, hints);
       } else if (mode == DECODE_MODE::ANY) {
         results = decode_any_(binary, hints);
       } else {
@@ -270,6 +273,10 @@ extern "C" {
 
   int decode_qr() {
     return __decode(DECODE_MODE::QR);
+  }
+
+  int decode_qr_multi() {
+    return __decode(DECODE_MODE::QR_MULTI);
   }
 
   int decode_any() {

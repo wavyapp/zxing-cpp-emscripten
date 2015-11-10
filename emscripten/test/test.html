@@ -56,6 +56,7 @@ function testZXing() {
 			for (var i=0, j=0; i<idd.length; i+=4, j++) {
 				ZXing.HEAPU8[image + j] = idd[i];
 			}
+			err = ZXing._decode_qr_multi();
 			err = ZXing._decode_qr();
 		}
 
@@ -65,6 +66,13 @@ function testZXing() {
 		}
 		err = ZXing._decode_qr();
 		console.timeEnd("decode QR");
+
+		console.time("decode QR multi");
+		for (var i=0, j=0; i<idd.length; i+=4, j++) {
+			ZXing.HEAPU8[image + j] = idd[i];
+		}
+		err = ZXing._decode_qr_multi();
+		console.timeEnd("decode QR multi");
 
 		console.time("decode any");
 		for (var i=0, j=0; i<idd.length; i+=4, j++) {
