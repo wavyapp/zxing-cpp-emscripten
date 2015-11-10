@@ -172,26 +172,25 @@ Ref<Binarizer> PassthroughBinarizer::createBinarizer(Ref<LuminanceSource> source
   return Ref<Binarizer> (new PassthroughBinarizer(source));
 }
 
-
 vector<Ref<Result> > decode_qr_(Ref<BinaryBitmap> image, DecodeHints hints) {
-  Ref<Reader> reader(new QRCodeReader);
-  return vector<Ref<Result> >(1, reader->decode(image, hints));
+  Ref<Reader> qrCodeReader(new QRCodeReader);
+  return vector<Ref<Result> >(1, qrCodeReader->decode(image, hints));
 }
 
 vector<Ref<Result> > decode_qr_multi_(Ref<BinaryBitmap> image, DecodeHints hints) {
-  Ref<Reader> reader(new QRCodeMultiReader);
-  return vector<Ref<Result> >(1, reader->decode(image, hints));
+  Ref<MultipleBarcodeReader> qrCodeMultiReader(new QRCodeMultiReader);
+  return qrCodeMultiReader->decodeMultiple(image, hints);
 }
 
 vector<Ref<Result> > decode_any_(Ref<BinaryBitmap> image, DecodeHints hints) {
-  Ref<Reader> reader(new MultiFormatReader);
-  return vector<Ref<Result> >(1, reader->decode(image, hints));
+  Ref<Reader> multiFormatReader(new MultiFormatReader);
+  return vector<Ref<Result> >(1, multiFormatReader->decode(image, hints));
 }
 
 vector<Ref<Result> > decode_multi_(Ref<BinaryBitmap> image, DecodeHints hints) {
   MultiFormatReader delegate;
-  GenericMultipleBarcodeReader reader(delegate);
-  return reader.decodeMultiple(image, hints);
+  GenericMultipleBarcodeReader genericReader(delegate);
+  return genericReader.decodeMultiple(image, hints);
 }
 
 enum DECODE_MODE {
@@ -216,18 +215,19 @@ extern "C" {
   }
 
 
-  int __decode(DECODE_MODE mode) {
+  int __decode(DECODE_MODE mode, void *decode_callback(const char *resultStr, int resultStrLen, int resultIndex, int resultCount)) {
     vector<Ref<Result> > results;
     int res = -1;
 
     Ref<Binarizer> binarizer;
+    Ref<BinaryBitmap> binary;
 
     try {
 
       DecodeHints hints(DecodeHints::DEFAULT_HINT);
 
       binarizer = new HybridBinarizer(source);
-      Ref<BinaryBitmap> binary(new BinaryBitmap(binarizer));
+      binary = new BinaryBitmap(binarizer);
 
       if (mode == DECODE_MODE::QR) {
         results = decode_qr_(binary, hints);
@@ -258,12 +258,7 @@ extern "C" {
     if (res == 0) {
       for (int i=0; i<results.size(); i++) {
         std::string result = results[i]->getText()->getText();
-        EM_ASM_(
-          {
-            ZXing.decode_callback($0, $1, $2, $3);
-          },
-          result.c_str(), result.size(), i, results.size()
-        );
+        decode_callback(result.c_str(), result.size(), i, results.size());
       }
     }
 
@@ -271,20 +266,20 @@ extern "C" {
   }
 
 
-  int decode_qr() {
-    return __decode(DECODE_MODE::QR);
+  int decode_qr(void *callback(const char*, int, int, int)) {
+    return __decode(DECODE_MODE::QR, callback);
   }
 
-  int decode_qr_multi() {
-    return __decode(DECODE_MODE::QR_MULTI);
+  int decode_qr_multi(void *callback(const char*, int, int, int)) {
+    return __decode(DECODE_MODE::QR_MULTI, callback);
   }
 
-  int decode_any() {
-    return __decode(DECODE_MODE::ANY);
+  int decode_any(void *callback(const char*, int, int, int)) {
+    return __decode(DECODE_MODE::ANY, callback);
   }
 
-  int decode_multi() {
-    return __decode(DECODE_MODE::MULTI);
+  int decode_multi(void *callback(const char*, int, int, int)) {
+    return __decode(DECODE_MODE::MULTI, callback);
   }
 
 }

@@ -66,6 +66,16 @@ function testZXing() {
 		video.onclick = function() { video.play(); };
 		video.play();
 
+		var decodeCallback = function(ptr, len, resultIndex, resultCount) {
+			var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
+			var str = String.fromCharCode.apply(null, result);
+			if (resultIndex === 0) {
+				window.resultString = '';
+			}
+			window.resultString += str + '<br>';
+		};
+		var decodePtr = ZXing.Runtime.addFunction(decodeCallback);
+
 		function getFrame() {
 			requestAnimationFrame(getFrame);
 
@@ -85,11 +95,6 @@ function testZXing() {
 
 				log('start');
 
-				ZXing.decode_callback = function(ptr, len, resultIndex, resultCount) {
-					var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
-					window.resultString = String.fromCharCode.apply(null, result);
-				};
-
 				image = ZXing._resize(width, height);
 				log('_xsetup', image, 'pointer');
 				return;
@@ -106,7 +111,7 @@ function testZXing() {
 				ZXing.HEAPU8[image + j] = 0.2989 * data[i + 0] + 0.5870 * data[i + 1] + 0.1140 * data[i + 2] ;
 			}
 
-			var err = ZXing._decode_qr();
+			var err = ZXing._decode_qr_multi(decodePtr);
 			// err = ZXing._decode_any();
 			// err = ZXing._decode_multi();
 

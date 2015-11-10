@@ -30,11 +30,12 @@ To use:
           var resultString;
 
           // JS callback to receive the result pointer from C++
-          ZXing.decode_callback = function(ptr, len, resultIndex, resultCount) {
+          var decodeCallback = function(ptr, len, resultIndex, resultCount) {
             // Convert the result C string into a JS string.
             var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
             resultString = String.fromCharCode.apply(null, result);
           };
+          var decodePtr = ZXing.Runtime.addFunction(decodeCallback);
 
           // Get a write pointer for the QR image data array.
           // The write pointer is a pointer to a width*height Uint8Array of grayscale values.
@@ -45,15 +46,19 @@ To use:
             ZXing.HEAPU8[imageWritePtr + j] = myGrayscaleImageData[i];
           }
 
-          // Detect QR codes in the image.
-          var err = ZXing._decode_qr();
+          // Detect a QRcode in the image.
+          var err = ZXing._decode_qr(decodePtr);
 
           // Detect a barcode in the image.
-          // err = ZXing._decode_any();
+          // err = ZXing._decode_any(decodePtr);
+
+          // Detect multiple QRcodes in the image.
+          // If there are multiple QRcodes detected, decodePtr is called with each.
+          // err = ZXing._decode_qr_multi(decodePtr);
 
           // Detect multiple barcodes in the image.
-          // If there are multiple barcodes detected, decode_callback is called with each.
-          // err = ZXing._decode_multi();
+          // If there are multiple barcodes detected, decodePtr is called with each.
+          // err = ZXing._decode_multi(decodePtr);
 
           console.log("error code", err);
           console.log("result", resultString);
