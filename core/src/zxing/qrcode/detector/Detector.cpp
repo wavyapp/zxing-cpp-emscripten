@@ -118,12 +118,16 @@ Ref<DetectorResult> Detector::processFinderPatternInfo(Ref<FinderPatternInfo> in
 
   Ref<PerspectiveTransform> transform = createTransform(topLeft, topRight, bottomLeft, alignmentPattern, dimension);
   Ref<BitMatrix> bits(sampleGrid(image_, dimension, transform));
-  ArrayRef< Ref<ResultPoint> > points(new Array< Ref<ResultPoint> >(alignmentPattern == 0 ? 3 : 4));
+  ArrayRef< Ref<ResultPoint> > points(new Array< Ref<ResultPoint> >(4));
   points[0].reset(bottomLeft);
   points[1].reset(topLeft);
   points[2].reset(topRight);
   if (alignmentPattern != 0) {
     points[3].reset(alignmentPattern);
+  } else {
+    float bottomRightX = topRight->getX() - topLeft->getX() + bottomLeft->getX();
+    float bottomRightY = topRight->getY() - topLeft->getY() + bottomLeft->getY();
+    points[3].reset(new ResultPoint(bottomRightX, bottomRightY));
   }
 
   Ref<DetectorResult> result(new DetectorResult(bits, points));

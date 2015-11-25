@@ -215,7 +215,8 @@ extern "C" {
   }
 
 
-  int __decode(DECODE_MODE mode, void *decode_callback(const char *resultStr, int resultStrLen, int resultIndex, int resultCount)) {
+  int __decode(DECODE_MODE mode, void *decode_callback(const char *resultStr, int resultStrLen, int resultIndex, int resultCount,
+    float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3 )) {
     vector<Ref<Result> > results;
     int res = -1;
 
@@ -258,7 +259,13 @@ extern "C" {
     if (res == 0) {
       for (int i=0; i<results.size(); i++) {
         std::string result = results[i]->getText()->getText();
-        decode_callback(result.c_str(), result.size(), i, results.size());
+        auto points = results[i]->getResultPoints();
+        decode_callback(result.c_str(), result.size(), i, results.size(), 
+          points[0]->getX(), points[0]->getY(),
+          points[1]->getX(), points[1]->getY(),
+          points[2]->getX(), points[2]->getY(),
+          points[3]->getX(), points[3]->getY()
+        );
       }
     }
 
@@ -266,19 +273,19 @@ extern "C" {
   }
 
 
-  int decode_qr(void *callback(const char*, int, int, int)) {
+  int decode_qr(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
     return __decode(DECODE_MODE::QR, callback);
   }
 
-  int decode_qr_multi(void *callback(const char*, int, int, int)) {
+  int decode_qr_multi(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
     return __decode(DECODE_MODE::QR_MULTI, callback);
   }
 
-  int decode_any(void *callback(const char*, int, int, int)) {
+  int decode_any(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
     return __decode(DECODE_MODE::ANY, callback);
   }
 
-  int decode_multi(void *callback(const char*, int, int, int)) {
+  int decode_multi(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
     return __decode(DECODE_MODE::MULTI, callback);
   }
 
