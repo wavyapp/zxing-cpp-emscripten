@@ -66,13 +66,21 @@ function testZXing() {
 		video.onclick = function() { video.play(); };
 		video.play();
 
-		var decodeCallback = function(ptr, len, resultIndex, resultCount) {
+		var decodeCallback = function(ptr, len, resultIndex, resultCount, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
 			var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
 			var str = String.fromCharCode.apply(null, result);
 			if (resultIndex === 0) {
 				window.resultString = '';
 			}
 			window.resultString += str + '<br>';
+			ctx.fillStyle = 'red';
+			ctx.fillRect(p0x-5, p0y-5, 10, 10);
+			ctx.fillStyle = 'green';
+			ctx.fillRect(p1x-5, p1y-5, 10, 10);
+			ctx.fillStyle = 'blue';
+			ctx.fillRect(p2x-5, p2y-5, 10, 10);
+			ctx.fillStyle = 'purple';
+			ctx.fillRect(p3x-5, p3y-5, 10, 10);
 		};
 		var decodePtr = ZXing.Runtime.addFunction(decodeCallback);
 

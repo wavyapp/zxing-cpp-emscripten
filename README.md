@@ -30,10 +30,12 @@ To use:
           var resultString;
 
           // JS callback to receive the result pointer from C++
-          var decodeCallback = function(ptr, len, resultIndex, resultCount) {
+          var decodeCallback = function(ptr, len, resultIndex, resultCount, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
             // Convert the result C string into a JS string.
             var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
             resultString = String.fromCharCode.apply(null, result);
+            // Do something with the QR finder points.
+            // drawPointsOnCanvas(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
           };
           var decodePtr = ZXing.Runtime.addFunction(decodeCallback);
 
