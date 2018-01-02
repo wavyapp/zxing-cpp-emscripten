@@ -1,122 +1,230 @@
-# ZXing Emscripten build
+# Building WebAssembly ZXing on Windows
 
-Based on the [ZXing C++ Port](https://github.com/glassechidna/zxing-cpp) with CMakeLists.txt from [ZXing Emscripten](https://github.com/fta2012/zxing-emscripten)
+The repository is based on [ZXing Emscripten build](https://github.com/kig/zxing-cpp-emscripten).
 
+## Emscripten Installation
+1. Download [emsdk-portable-64bit.zip](https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable-64bit.zip)
+2. Fetch the latest registry of available tools:
+  
+    ```
+    emsdk update
+    ```
+3. Download and install the latest SDK tools:
+
+    ```
+    emsdk install latest
+    ```
+3. Make the "latest" SDK "active" for the current user:
+
+    ```
+    emsdk activate latest
+    ```
+4.  Activate PATH and other environment variables in the current terminal:
+
+    ```
+    emsdk_env
+    ```
+
+## JavaScript ZXing
 To build:
 
-  1. `cd build`
-  2. `emconfigure cmake ..`
-  3. `emmake make -j4`
-  4. `cd ..`
-  5. `serve -p 3000`
-  6. `open http://localhost:3000/emscripten/test/test.html`
+  1. `cd build-js`
+  2. Run `configure.bat`
+  3. Run `build.bat`
+  4. Add the path of **build-js** folder to **IIS**.
+  5. Open `http://localhost:2588/test.html`.
 
 To use:
 
 ``` javascript
-    <script type="text/javascript">
-      var tick = function() {
-        if (window.ZXing) {
-          ZXing = ZXing();
-          doSomeDetecting();
-        } else {
-          setTimeout(tick, 10);
-        }
-      };
-      setTimeout(tick, 10);
+    <script>
+		var tick = function () {
+			if (window.ZXing) {
+				ZXing = ZXing();
+				testZXing();
+			} else {
+				setTimeout(tick, 10);
+			}
+		};
+		tick();
 
-      var doSomeDetecting = function() {
+		function testZXing() {
+			var img = new Image;
+			img.src = 'Qr-10.png';
+			img.onload = function () {
 
-          var resultString;
+				var width = Math.floor(this.width),
+					height = Math.floor(this.height);
 
-          // JS callback to receive the result pointer from C++
-          var decodeCallback = function(ptr, len, resultIndex, resultCount, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
-            // Convert the result C string into a JS string.
-            var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
-            resultString = String.fromCharCode.apply(null, result);
-            // Do something with the QR finder points.
-            // drawPointsOnCanvas(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
-          };
-          var decodePtr = ZXing.Runtime.addFunction(decodeCallback);
+				var canvas = document.createElement('canvas');
+				canvas.style.display = 'block';
+				canvas.width = width;
+				canvas.height = height;
+				var ctx = canvas.getContext('2d');
+				// ctx.rotate(Math.random()*0.1-0.05);
+				ctx.drawImage(this, 0, 0, width, height);
+				var imageData = ctx.getImageData(0, 0, width, height);
+				var idd = imageData.data;
+				document.body.appendChild(canvas);
 
-          // Get a write pointer for the QR image data array.
-          // The write pointer is a pointer to a width*height Uint8Array of grayscale values.
-          var imageWritePtr = ZXing._resize(width, height);
+				var decodeCallback = function (ptr, len, resultIndex, resultCount) {
+					var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
+					window.resultString = String.fromCharCode.apply(null, result);
+				};
+				var decodePtr = ZXing.Runtime.addFunction(decodeCallback);
 
-          // Copy your image data to the QR image data array.
-          for (var i=0, j=0; i<myGrayscaleImageData.length; i++, j++) {
-            ZXing.HEAPU8[imageWritePtr + j] = myGrayscaleImageData[i];
-          }
+				var image = ZXing._resize(width, height);
 
-          // Detect a QRcode in the image.
-          var err = ZXing._decode_qr(decodePtr);
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
 
-          // Detect a barcode in the image.
-          // err = ZXing._decode_any(decodePtr);
+				var err = ZXing._decode_qr(decodePtr);
 
-          // Detect multiple QRcodes in the image.
-          // If there are multiple QRcodes detected, decodePtr is called with each.
-          // err = ZXing._decode_qr_multi(decodePtr);
+				console.log("error code", err);
+				console.log("result", window.resultString);
 
-          // Detect multiple barcodes in the image.
-          // If there are multiple barcodes detected, decodePtr is called with each.
-          // err = ZXing._decode_multi(decodePtr);
+				document.body.appendChild(document.createTextNode(err ? ("error: " + err) : window.resultString));
 
-          console.log("error code", err);
-          console.log("result", resultString);
+				for (var k = 0; k < 50; k++) {
+					for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+						ZXing.HEAPU8[image + j] = idd[i];
+					}
+					err = ZXing._decode_qr_multi(decodePtr);
+					err = ZXing._decode_qr(decodePtr);
+				}
 
-        }
-      };
-    </script>
-    <script async src="zxing.js"></script>
+				console.time("decode QR");
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
+				err = ZXing._decode_qr(decodePtr);
+				console.timeEnd("decode QR");
+
+				console.time("decode QR multi");
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
+				err = ZXing._decode_qr_multi(decodePtr);
+				console.timeEnd("decode QR multi");
+
+				console.time("decode any");
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
+				err = ZXing._decode_any(decodePtr);
+				console.timeEnd("decode any");
+
+				console.time("decode multi");
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
+				err = ZXing._decode_multi(decodePtr);
+				console.timeEnd("decode multi");
+
+			};
+		};
+	</script>
+  <script async src="zxing.js"></script>
 ```
 
-To hack: 
+## WebAssembly ZXing
+To build:
 
-  See `emscripten/zxing.js.cpp`. 
+  1. `cd build-wasm`
+  2. Run `configure.bat`
+  3. Run `build.bat`
+  4. Add the path of **build-wasm** folder to **IIS**.
+  5. Open `http://localhost:2588/test.html`.
 
-# ZXing C++ Port
+To use:
 
-[ZXing](https://github.com/zxing/zxing) is/was a Java library.
+``` javascript
+    <script>
+		var ZXing;
+		var Module = {
+			onRuntimeInitialized: function () {
+				ZXing = Module;
+				testZXing();
+			}
+		};
 
-At some point a complete C++ port/rewrite was created and maintained in the official [ZXing](https://github.com/zxing/zxing) repo. However, at the time of writing the C++ port is no longer maintained and has been removed from the official ZXing repo.
+		function testZXing() {
+			var img = new Image;
+			img.src = 'Qr-10.png';
+			img.onload = function () {
 
-This project was forked from the [last ZXing commit](https://github.com/zxing/zxing/commit/00f6340) to contain the C++ project, with the following exceptions
+				var width = Math.floor(this.width),
+					height = Math.floor(this.height);
 
- * scons (Python) build system has been deleted.
- * Deleted black box tests, because they refer to a large test data in ZXing repo.
- * Added appropriate copyright/licensing details (based on those in the ZXing repo).
- * Updated README.md
+				var canvas = document.createElement('canvas');
+				canvas.style.display = 'block';
+				canvas.width = width;
+				canvas.height = height;
+				var ctx = canvas.getContext('2d');
+				// ctx.rotate(Math.random()*0.1-0.05);
+				ctx.drawImage(this, 0, 0, width, height);
+				var imageData = ctx.getImageData(0, 0, width, height);
+				var idd = imageData.data;
+				document.body.appendChild(canvas);
 
-Removal of build systems was done to minimise maintenance burden.
+				var decodeCallback = function (ptr, len, resultIndex, resultCount) {
+					var result = new Uint8Array(ZXing.HEAPU8.buffer, ptr, len);
+					window.resultString = String.fromCharCode.apply(null, result);
+				};
+				var decodePtr = ZXing.Runtime.addFunction(decodeCallback);
 
-If tests and XCode projects (other than those produced automatically be CMake) are desired, then another repo should be created and this repo referenced as a submodule. 
+				var image = ZXing._resize(width, height);
 
-# Building using CMake
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
 
-CMake is a tool, that generates native makefiles and workspaces. It integrates well with a number of IDEs including Qt Creator and Visual Studio.
+				var err = ZXing._decode_qr(decodePtr);
 
-Usage with CLion or Qt Creator:
+				console.log("error code", err);
+				console.log("result", window.resultString);
 
-  1. Simply open `CMakeLists.txt` as a new project
-  2. Additional command line arguments can be specified (see below)
+				document.body.appendChild(document.createTextNode(err ? ("error: " + err) : window.resultString));
 
-Usage with Makefiles, Visual Studio, etc. (see `cmake --help` for a complete list of generators):
+				for (var k = 0; k < 50; k++) {
+					for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+						ZXing.HEAPU8[image + j] = idd[i];
+					}
+					err = ZXing._decode_qr_multi(decodePtr);
+					err = ZXing._decode_qr(decodePtr);
+				}
 
-  1. `mkdir build`
-  2. `cd` to `build`
-  3. Unix: run `cmake -G "Unix Makefiles" ..`
-  3. Windows: run `cmake -G "Visual Studio 10" ..`
-  
-You can switch between build modes by specifying:
+				console.time("decode QR");
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
+				err = ZXing._decode_qr(decodePtr);
+				console.timeEnd("decode QR");
 
-  - `-DCMAKE_BUILD_TYPE=Debug` or
-  - `-DCMAKE_BUILD_TYPE=Release`
+				console.time("decode QR multi");
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
+				err = ZXing._decode_qr_multi(decodePtr);
+				console.timeEnd("decode QR multi");
 
-# Development tips
+				console.time("decode any");
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
+				err = ZXing._decode_any(decodePtr);
+				console.timeEnd("decode any");
 
-To profile the code (very useful to optimize the code):
+				console.time("decode multi");
+				for (var i = 0, j = 0; i < idd.length; i += 4, j++) {
+					ZXing.HEAPU8[image + j] = idd[i];
+				}
+				err = ZXing._decode_multi(decodePtr);
+				console.timeEnd("decode multi");
 
-  1. Install Valgrind
-  2. Run `valgrind --tool=callgrind build/zxing - path/to/test/data/*.jpg > report.html`
-  3. Analyze output using KCachegrind
+			};
+		};
+	</script>
+  <script async src="zxing.js"></script>
+```
