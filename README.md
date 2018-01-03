@@ -228,3 +228,7 @@ To use:
 	</script>
   <script async src="zxing.js"></script>
 ```
+
+## Performance
+
+![JavaScript ZXing vs WebAssembly ZXing](http://www.codepool.biz/wp-content/uploads/2018/01/javascript-webassembly-zxing-performance.PNG)
