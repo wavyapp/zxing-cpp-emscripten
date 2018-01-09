@@ -232,3 +232,6 @@ To use:
 ## Performance
 
 ![JavaScript ZXing vs WebAssembly ZXing](http://www.codepool.biz/wp-content/uploads/2018/01/javascript-webassembly-zxing-performance.PNG)
+
+## Blog
+[Building JavaScript and WebAssembly ZXing on Windows](http://www.codepool.biz/building-webassembly-zxing-windows.html)
