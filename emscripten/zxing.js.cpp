@@ -260,11 +260,19 @@ extern "C" {
       for (int i=0; i<results.size(); i++) {
         std::string result = results[i]->getText()->getText();
         auto points = results[i]->getResultPoints();
+        int xs[4] = {0}, ys[4] = {0};
+
+        for (int j = 0; j < points->size(); j++) 
+        {
+            xs[j] = points[j]->getX();
+            ys[j] = points[j]->getY();
+        }
+
         decode_callback(result.c_str(), result.size(), i, results.size(), 
-          points[0]->getX(), points[0]->getY(),
-          points[1]->getX(), points[1]->getY(),
-          points[2]->getX(), points[2]->getY(),
-          points[3]->getX(), points[3]->getY()
+          xs[0], ys[0],
+          xs[1], ys[1],
+          xs[2], ys[2],
+          xs[3], ys[3]
         );
       }
     }
