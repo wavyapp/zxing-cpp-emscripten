@@ -234,4 +234,5 @@ To use:
 ![JavaScript ZXing vs WebAssembly ZXing](http://www.codepool.biz/wp-content/uploads/2018/01/javascript-webassembly-zxing-performance.PNG)
 
 ## Blog
-[Building JavaScript and WebAssembly ZXing on Windows](http://www.codepool.biz/building-webassembly-zxing-windows.html)
+- [Building JavaScript and WebAssembly ZXing on Windows](http://www.codepool.biz/building-webassembly-zxing-windows.html)
+- [Building HTML5 Barcode Reader with Pure JavaScript SDK](http://www.codepool.biz/html5-barcode-reader-javascript-webassembly.html)
