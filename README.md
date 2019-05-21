@@ -1,4 +1,4 @@
-# Building WebAssembly ZXing on Windows
+# Building WebAssembly ZXing on Windows or Unix/Linux
 
 The repository is based on [ZXing Emscripten build](https://github.com/kig/zxing-cpp-emscripten).
 
