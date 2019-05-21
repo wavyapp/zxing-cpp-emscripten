@@ -19,6 +19,17 @@
 #include <zxing/common/Counted.h>
 #include <zxing/Binarizer.h>
 #include <zxing/MultiFormatReader.h>
+#include <zxing/oned/CodaBarReader.h>
+#include <zxing/oned/Code128Reader.h>
+#include <zxing/oned/Code39Reader.h>
+#include <zxing/oned/Code93Reader.h>
+#include <zxing/oned/EAN13Reader.h>
+#include <zxing/oned/EAN8Reader.h>
+#include <zxing/oned/ITFReader.h>
+#include <zxing/oned/MultiFormatOneDReader.h>
+#include <zxing/oned/MultiFormatUPCEANReader.h>
+#include <zxing/oned/UPCAReader.h>
+#include <zxing/oned/UPCEReader.h>
 #include <zxing/Result.h>
 #include <zxing/ReaderException.h>
 #include <zxing/common/GlobalHistogramBinarizer.h>
@@ -48,6 +59,7 @@ using namespace std;
 using namespace zxing;
 using namespace zxing::qrcode;
 using namespace zxing::multi;
+using namespace zxing::oned;
 
 
 class ImageReaderSource : public zxing::LuminanceSource {
@@ -193,11 +205,77 @@ vector<Ref<Result> > decode_multi_(Ref<BinaryBitmap> image, DecodeHints hints) {
   return genericReader.decodeMultiple(image, hints);
 }
 
+vector<Ref<Result> > decode_codabar_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> codabarFormatReader(new CodaBarReader);
+  return vector<Ref<Result> >(1, codabarFormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_code128_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> code128FormatReader(new Code128Reader);
+  return vector<Ref<Result> >(1, code128FormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_code39_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> code39FormatReader(new Code39Reader);
+  return vector<Ref<Result> >(1, code39FormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_code93_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> code93FormatReader(new Code93Reader);
+  return vector<Ref<Result> >(1, code93FormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_ean13_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> ean13FormatReader(new EAN13Reader);
+  return vector<Ref<Result> >(1, ean13FormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_ean8_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> ean8FormatReader(new EAN8Reader);
+  return vector<Ref<Result> >(1, ean8FormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_itf_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> itfFormatReader(new ITFReader);
+  return vector<Ref<Result> >(1, itfFormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_multi_one_d_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> multiOneDFormatReader(new MultiFormatOneDReader(hints));
+  return vector<Ref<Result> >(1, multiOneDFormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_multi_upc_ean_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> multiUPCEANFormatReader(new MultiFormatUPCEANReader(hints));
+  return vector<Ref<Result> >(1, multiUPCEANFormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_upca_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> upcaFormatReader(new UPCAReader);
+  return vector<Ref<Result> >(1, upcaFormatReader->decode(image, hints));
+}
+
+vector<Ref<Result> > decode_upce_(Ref<BinaryBitmap> image, DecodeHints hints) {
+  Ref<Reader> upceFormatReader(new UPCEReader);
+  return vector<Ref<Result> >(1, upceFormatReader->decode(image, hints));
+}
+
 enum DECODE_MODE {
   QR,
   QR_MULTI,
   ANY,
-  MULTI
+  MULTI,
+  CODABAR,
+  CODE128,
+  CODE39,
+  CODE93,
+  EAN13,
+  EAN8,
+  ITF,
+  MULTI_ONE_D,
+  MULTI_UPC_EAN,
+  UPCA,
+  UPCE
 };
 
 
@@ -226,8 +304,10 @@ extern "C" {
     try {
 
       DecodeHints hints(DecodeHints::DEFAULT_HINT);
+		//hints.setTryHarder(true);
 
       binarizer = new HybridBinarizer(source);
+      //binarizer = new GlobalHistogramBinarizer(source);
       binary = new BinaryBitmap(binarizer);
 
       if (mode == DECODE_MODE::QR) {
@@ -236,7 +316,31 @@ extern "C" {
         results = decode_qr_multi_(binary, hints);
       } else if (mode == DECODE_MODE::ANY) {
         results = decode_any_(binary, hints);
-      } else {
+      } else if (mode == DECODE_MODE::MULTI) {
+        results = decode_multi_(binary, hints);
+      } else if (mode == DECODE_MODE::CODABAR) {
+        results = decode_codabar_(binary, hints);
+      } else if (mode == DECODE_MODE::CODE128) {
+        results = decode_code128_(binary, hints);
+      } else if (mode == DECODE_MODE::CODE39) {
+        results = decode_code39_(binary, hints);
+      } else if (mode == DECODE_MODE::CODE93) {
+        results = decode_code93_(binary, hints);
+      } else if (mode == DECODE_MODE::EAN13) {
+        results = decode_ean13_(binary, hints);
+      } else if (mode == DECODE_MODE::EAN8) {
+        results = decode_ean8_(binary, hints);
+      } else if (mode == DECODE_MODE::ITF) {
+        results = decode_itf_(binary, hints);
+      } else if (mode == DECODE_MODE::MULTI_ONE_D) {
+        results = decode_multi_one_d_(binary, hints);
+      } else if (mode == DECODE_MODE::MULTI_UPC_EAN) {
+        results = decode_multi_upc_ean_(binary, hints);
+      } else if (mode == DECODE_MODE::UPCA) {
+        results = decode_upca_(binary, hints);
+      } else if (mode == DECODE_MODE::UPCE) {
+        results = decode_upce_(binary, hints);
+		} else {
         results = decode_multi_(binary, hints);
       }
 
@@ -295,6 +399,50 @@ extern "C" {
 
   int decode_multi(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
     return __decode(DECODE_MODE::MULTI, callback);
+  }
+
+  int decode_codabar(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::CODABAR, callback);
+  }
+
+  int decode_code128(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::CODE128, callback);
+  }
+
+  int decode_code39(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::CODE39, callback);
+  }
+
+  int decode_code93(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::CODE93, callback);
+  }
+
+  int decode_ean13(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::EAN13, callback);
+  }
+
+  int decode_ean8(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::EAN8, callback);
+  }
+
+  int decode_itf(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::ITF, callback);
+  }
+
+  int decode_multi_one_d(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::MULTI_ONE_D, callback);
+  }
+
+  int decode_multi_upc_ean(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::MULTI_UPC_EAN, callback);
+  }
+
+  int decode_upca(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::UPCA, callback);
+  }
+
+  int decode_upce(void *callback(const char*, int, int, int, float, float, float, float, float, float, float, float)) {
+    return __decode(DECODE_MODE::UPCE, callback);
   }
 
 }
