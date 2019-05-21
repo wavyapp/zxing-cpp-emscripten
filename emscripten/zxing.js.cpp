@@ -304,8 +304,10 @@ extern "C" {
     try {
 
       DecodeHints hints(DecodeHints::DEFAULT_HINT);
+		//hints.setTryHarder(true);
 
       binarizer = new HybridBinarizer(source);
+      //binarizer = new GlobalHistogramBinarizer(source);
       binary = new BinaryBitmap(binarizer);
 
       if (mode == DECODE_MODE::QR) {
