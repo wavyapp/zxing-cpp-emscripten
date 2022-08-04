@@ -229,6 +229,12 @@ To use:
   <script async src="zxing.js"></script>
 ```
 
+### How to import
+
+- Serve statically `zxing.wasm` on server root
+- edit `zxing.js` to add `export default Module;` at the end
+- use `import ZXing from './zxing.js'` where you want to use it
+
 ## Performance
 
 ![JavaScript ZXing vs WebAssembly ZXing](http://www.codepool.biz/wp-content/uploads/2018/01/javascript-webassembly-zxing-performance.PNG)
